@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d3f48ea263e78046978c75871c27f4f, type: 3}
+  m_Name: HandheldPDW
+  m_EditorClassIdentifier: 
+  HandheldPrefab: {fileID: 1236234760586584368, guid: 072faf0e6f2160042b4e1bbf8f67bba7, type: 3}
+  ArmController: {fileID: 9100000, guid: 5c6f95a2d3a791540ade44be19a0281e, type: 2}
+  HandheldController: {fileID: 9100000, guid: 6a21ef0de77dbbc4e8317878a50fad29, type: 2}
