@@ -243,9 +243,9 @@ MonoBehaviour:
   isChargeable: 0
   chargeTime: 0
   recoilPattern:
-  - {x: -0.1, y: 0.02, z: 0.1}
+  - {x: -0.1, y: 0, z: 0.1}
   recoilVariance:
-  - {x: 0, y: 0.035, z: 0.3}
+  - {x: 0, y: 0.01, z: 0.3}
   maxRecoilReturn: 0.2
   snappiness: 6
   returnSpeed: 2
