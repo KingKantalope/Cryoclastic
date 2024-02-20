@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class GroundCheck : MonoBehaviour
 {
-    [SerializeField] private PlayerMovement player;
+    [SerializeField] private PlayerMovementAdvanced player;
 
     private void OnTriggerEnter(Collider other)
     {

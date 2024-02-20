@@ -92,7 +92,7 @@ public class PlayerAim : MonoBehaviour
         Vector3 gamepadTurn = Vector3.up * gamepadLook.x * gamepadSensitivity.x * gamepadAcceleration * (1f - gamepadFriction);
 
         // turn
-        transform.Rotate(mouseTurn + gamepadTurn + recoilRotation);
+        camHolder.Rotate(mouseTurn + gamepadTurn + recoilRotation);
 
         // up/down inputs
         float mouseRotation = -mouseLook.y * mouseSensitivity.y * (1f - mouseFriction);
@@ -101,7 +101,7 @@ public class PlayerAim : MonoBehaviour
         // look
         lookRotation += (mouseRotation + gamepadRotation + netRecoil.x);
         lookRotation = Mathf.Clamp(lookRotation, -90, 90);
-        camHolder.eulerAngles = new Vector3(lookRotation, camHolder.eulerAngles.y, camHolder.eulerAngles.z);
+        zRotation.eulerAngles = new Vector3(lookRotation, zRotation.eulerAngles.y, zRotation.eulerAngles.z);
     }
 
     /* Set up acceleration based on the magnitude and duration of gamepad aim input

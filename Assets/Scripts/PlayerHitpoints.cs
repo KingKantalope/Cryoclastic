@@ -100,7 +100,7 @@ public class PlayerHitpoints : MonoBehaviour, IDamageable
     private void OnDeath()
     {
         // figure this out later
-        Debug.Log("OMG I FUCKING DIED UGH");
+        //Debug.Log("OMG I FUCKING DIED UGH");
     }
 
     #region status effects
