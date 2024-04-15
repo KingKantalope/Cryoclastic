@@ -38,6 +38,8 @@ public class PlayerAim : MonoBehaviour
 
     private void Start()
     {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         returnRotation = Vector3.zero;
     }
 

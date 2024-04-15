@@ -42,7 +42,7 @@ public class PlayerMovementAdvanced : MonoBehaviour
     private Vector3 moveDirection;
 
     private Rigidbody rb;
-    private CapsuleCollider collider;
+    private CapsuleCollider playerCollider;
 
     private MovementState state;
     public enum MovementState
@@ -76,7 +76,7 @@ public class PlayerMovementAdvanced : MonoBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
-        collider = GetComponent<CapsuleCollider>();
+        playerCollider = GetComponent<CapsuleCollider>();
         rb.freezeRotation = true;
 
         readyToJump = true;
@@ -85,7 +85,7 @@ public class PlayerMovementAdvanced : MonoBehaviour
     private void Update()
     {
         // ground check
-        grounded = Physics.Raycast(transform.position, Vector3.down, collider.height * 0.5f + 0.3f, whatIsGround);
+        grounded = Physics.Raycast(transform.position, Vector3.down, playerCollider.height * 0.5f + 0.3f, whatIsGround);
 
         SpeedControl();
         StateHandler();
@@ -203,7 +203,7 @@ public class PlayerMovementAdvanced : MonoBehaviour
 
     private bool OnSlope()
     {
-        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, collider.height * 0.5f + 0.3f))
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerCollider.height * 0.5f + 0.3f))
         {
             Debug.Log("Raycast successful");
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);

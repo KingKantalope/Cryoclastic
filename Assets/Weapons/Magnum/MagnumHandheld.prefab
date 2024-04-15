@@ -89,12 +89,12 @@ MonoBehaviour:
   isChargeable: 0
   chargeTime: 0
   recoilPattern:
-  - {x: 0, y: 0, z: 0}
+  - {x: -0.3, y: 0.05, z: 0}
   recoilVariance:
-  - {x: 0, y: 0, z: 0}
-  maxRecoilReturn: 0
-  snappiness: 6
-  returnSpeed: 6
+  - {x: 0, y: 0.03, z: 0}
+  maxRecoilReturn: 1
+  snappiness: 10
+  returnSpeed: 20
   minSpread: 0.15
   maxSpread: 0.15
   spreadIncreasePerAttack: 0
