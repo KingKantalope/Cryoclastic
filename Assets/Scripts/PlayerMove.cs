@@ -2,122 +2,159 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(CharacterController), typeof(CapsuleCollider))]
+[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class PlayerMove : MonoBehaviour
 {
-    private CharacterController controller;
+    private Rigidbody rb;
     private CapsuleCollider playerCollider;
     private Vector3 playerVelocity;
     private bool grounded;
     private bool sliding;
+    private bool crouching;
+    private float slopeAngle;
+    private Vector3 slopeNormal;
+    private float distToGround;
 
     public float playerSpeed = 5.0f;
+    public float playerAccel = 20.0f;
     public float crouchSpeed = 3.25f;
-    public float groundAccelRate = 0.2f;
-    public float airAccelRate = 0.5f;
+    public float crouchAccel = 13.0f;
+    public float minVelocity = 0.001f;
+    public float airAccel = 3.0f;
     public float jumpHeight = 2.0f;
-    public float gravityValue = -10.0f;
-    public float slopeAngle = 45.0f;
-    public float stepHeight = 0.3f;
+    public float jumpCrouchMulti = 0.5f;
+    public float defaultGravity = -10.0f;
+    public float maxSlopeAngle = 45.0f;
     public LayerMask whatIsGround = LayerMask.GetMask("Ground");
 
     private Vector2 moveInput;
     private bool wantToJump;
     private bool wantToCrouch;
-    private Vector2 currentInputVector;
-    private Vector2 smoothInputVelocity;
-    private Vector3 slopeSlideVelocity;
+    private Vector3 TargetVelocity;
+    private Vector3 LateralVelocity;
 
     public List<gravityPair> GravityList;
 
     public void OnMove(InputAction.CallbackContext context) { moveInput = context.ReadValue<Vector2>(); }
-    public void OnJump(InputAction.CallbackContext context) { wantToJump = context.ReadValueAsButton(); }
-    public void OnCrouch(InputAction.CallbackContext context) { wantToCrouch = context.ReadValueAsButton(); }
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        wantToJump = context.ReadValueAsButton();
+
+        if (grounded) Jump();
+    }
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
+        wantToCrouch = context.ReadValueAsButton();
+
+        crouching = context.ReadValueAsButton();
+    }
 
     // Start is called before the first frame update
     void Start()
     {
-        controller = GetComponent<CharacterController>();
+        rb = GetComponent<Rigidbody>();
         playerCollider = GetComponent<CapsuleCollider>();
-        controller.stepOffset = stepHeight;
+        rb.useGravity = false;
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        // check if grounded
-        CalculateSlide();
-        Move();
+        FindGround();
+        LateralMove();
+        VerticalMove();
     }
 
-    private void Move()
+    private void FindGround()
     {
-        // initialize acceleration and such
-        float accel = groundAccelRate;
-
-        // jump, damn you!
-        if (grounded)
+        // raycast to find ground
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, -transform.up, out hit, (playerCollider.height / 2) + 0.2f, whatIsGround))
         {
-            // vertical velocity
-            if (playerVelocity.y < 0f) playerVelocity.y = -5f;
-            if (wantToJump) playerVelocity.y = Mathf.Sqrt(jumpHeight * -3.0f * gravityValue);
-        }
-        else
-        {
-            if (sliding)
+            // save normal of surface
+            slopeNormal = hit.normal;
+
+            // get slope angle
+            slopeAngle = Vector3.Angle(Vector3.up, hit.normal);
+
+            // check slope angle
+            if (slopeAngle <= maxSlopeAngle)
             {
-                playerVelocity = slopeSlideVelocity;
-            }
-            accel = airAccelRate;
-        }
-
-        Vector3 lateralMove = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
-        lateralMove = moveInput.x * transform.right.normalized + moveInput.y * lateralMove;
-        Debug.Log("lateralMove: " + lateralMove);
-
-        Vector2 latMove = new Vector2(lateralMove.x, lateralMove.z);
-        currentInputVector = Vector2.SmoothDamp(currentInputVector, latMove, ref smoothInputVelocity, accel);
-        Vector3 move = new Vector3(currentInputVector.x, 0f, currentInputVector.y);
-        move *= Time.deltaTime * (wantToCrouch? crouchSpeed : playerSpeed);
-        Debug.Log("move: " + move);
-
-        // jump!
-
-        // perform gravity, eventually add dynamic gravity list
-        playerVelocity.y += gravityValue * Time.deltaTime;
-        controller.Move(move + playerVelocity * Time.deltaTime);
-    }
-    
-    private void CalculateSlide()
-    {
-        Debug.Log("Calculating Slide!");
-        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hitInfo, 5))
-        {
-            float angle = Vector3.Angle(hitInfo.normal, Vector3.up);
-            Debug.Log("ground slope" + angle);
-            if (angle >= controller.slopeLimit)
-            {
-                slopeSlideVelocity = Vector3.ProjectOnPlane(new Vector3(0f, gravityValue, 0f), hitInfo.normal);
-                sliding = true;
-                grounded = false;
-                return;
-            }
-            else if (hitInfo.transform.gameObject.layer == whatIsGround.value)
-            {
-                sliding = false;
                 grounded = true;
                 return;
             }
         }
-        Debug.Log("No Ground!");
-
-        sliding = false;
+        
         grounded = false;
+
     }
 
-    private void OnControllerColliderHit(ControllerColliderHit hit)
+    private void LateralMove()
     {
-        
+        if (grounded)
+        {
+            // get input relative to slope normal and player rotation
+            TargetVelocity = Vector3.zero;
+            TargetVelocity += Vector3.ProjectOnPlane(transform.right, slopeNormal).normalized * moveInput.x;
+            TargetVelocity += Vector3.ProjectOnPlane(transform.forward, slopeNormal).normalized * moveInput.y;
+
+            // project lateralVelocity onto normal
+            LateralVelocity = rb.velocity;
+            LateralVelocity = Vector3.ProjectOnPlane(LateralVelocity, slopeNormal);
+
+            // get target velocity
+            TargetVelocity *= (crouching ? crouchSpeed : playerSpeed);
+
+            Vector3 velocityChange = (TargetVelocity - LateralVelocity).normalized;
+            velocityChange *= (crouching ? crouchAccel : playerAccel) * Time.fixedDeltaTime;
+
+            // change move velocity
+            rb.AddForce(velocityChange, ForceMode.VelocityChange);
+        }
+        else
+        {
+            // get input relative to player transform rotation
+            TargetVelocity = new Vector3(moveInput.x, 0f, moveInput.y);
+            TargetVelocity = transform.TransformDirection(TargetVelocity);
+
+            // get lateral velocity
+            LateralVelocity = rb.velocity;
+            LateralVelocity.y = 0f;
+
+            // get target velocity
+            TargetVelocity *= airAccel * Time.fixedDeltaTime;
+            TargetVelocity += LateralVelocity;
+
+            // do not accelerate beyond either max speed or current airspeed
+            float magnitude = Mathf.Max((crouching ? crouchSpeed : playerSpeed),LateralVelocity.magnitude);
+            TargetVelocity = Vector3.ClampMagnitude(TargetVelocity, magnitude);
+
+            Vector3 velocityChange = TargetVelocity - LateralVelocity;
+            rb.AddForce(velocityChange,ForceMode.VelocityChange);
+        }
+    }
+
+    private void VerticalMove()
+    {
+        if (!grounded)
+        {
+            // gravity!
+            rb.AddForce(Vector3.up * defaultGravity * Time.fixedDeltaTime, ForceMode.VelocityChange);
+        }
+    }
+
+    private void Jump()
+    {
+        Vector3 jumpForces = rb.velocity;
+
+        float jumpVelocity = Mathf.Sqrt(jumpHeight * -2f * Physics.gravity.y * (crouching ? jumpCrouchMulti : 1f));
+
+        if (grounded)
+        {
+            jumpForces.y = jumpVelocity;
+        }
+
+        rb.velocity = jumpForces;
     }
 }
 
