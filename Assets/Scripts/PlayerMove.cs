@@ -27,11 +27,14 @@ public class PlayerMove : MonoBehaviour
     public float maxSlopeAngle = 45.0f;
     public LayerMask whatIsGround = LayerMask.GetMask("Ground");
 
+    // climbing
+
     private Vector2 moveInput;
     private bool wantToJump;
     private bool wantToCrouch;
     private Vector3 TargetVelocity;
     private Vector3 LateralVelocity;
+    private Vector3 newVelocity;
 
     public List<gravityPair> GravityList;
 
@@ -54,6 +57,7 @@ public class PlayerMove : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerCollider = GetComponent<CapsuleCollider>();
+        rb.sleepThreshold = minVelocity;
         rb.useGravity = false;
     }
 
@@ -63,6 +67,7 @@ public class PlayerMove : MonoBehaviour
         FindGround();
         LateralMove();
         VerticalMove();
+        Debug.Log("rb.velocity.magnitude: " + rb.velocity.magnitude);
     }
 
     private void FindGround()
@@ -87,10 +92,13 @@ public class PlayerMove : MonoBehaviour
         
         grounded = false;
 
+        Debug.Log("Not Grounded!!!!!!!!!!!!");
     }
 
     private void LateralMove()
     {
+        Vector3 velocityChange = Vector3.zero;
+
         if (grounded)
         {
             // get input relative to slope normal and player rotation
@@ -105,11 +113,12 @@ public class PlayerMove : MonoBehaviour
             // get target velocity
             TargetVelocity *= (crouching ? crouchSpeed : playerSpeed);
 
-            Vector3 velocityChange = (TargetVelocity - LateralVelocity).normalized;
+            velocityChange = (TargetVelocity - LateralVelocity).normalized;
             velocityChange *= (crouching ? crouchAccel : playerAccel) * Time.fixedDeltaTime;
 
             // change move velocity
-            rb.AddForce(velocityChange, ForceMode.VelocityChange);
+            if (rb.velocity.magnitude >= minVelocity || moveInput != Vector2.zero) rb.AddForce(velocityChange, ForceMode.VelocityChange);
+            else rb.AddForce(-rb.velocity, ForceMode.VelocityChange);
         }
         else
         {
@@ -129,8 +138,10 @@ public class PlayerMove : MonoBehaviour
             float magnitude = Mathf.Max((crouching ? crouchSpeed : playerSpeed),LateralVelocity.magnitude);
             TargetVelocity = Vector3.ClampMagnitude(TargetVelocity, magnitude);
 
-            Vector3 velocityChange = TargetVelocity - LateralVelocity;
-            rb.AddForce(velocityChange,ForceMode.VelocityChange);
+            velocityChange = TargetVelocity - LateralVelocity;
+
+            // change move velocity
+            rb.AddForce(velocityChange, ForceMode.VelocityChange);
         }
     }
 
