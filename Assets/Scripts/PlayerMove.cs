@@ -1,18 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Events;
 
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class PlayerMove : MonoBehaviour
 {
+    // events
+    public UnityEvent<bool> OnPlayerClimb;
+    public UnityEvent<float> OnPlayerMove;
+    public UnityEvent OnPlayerJump;
+
     private Rigidbody rb;
     private CapsuleCollider playerCollider;
     private Vector3 playerVelocity;
     private bool grounded;
-    private bool sliding;
+    private bool canClimb;
     private bool crouching;
     private float slopeAngle;
     private Vector3 slopeNormal;
+    private Vector3 wallNormal;
+    private float wallAngle;
     private float distToGround;
 
     public float playerSpeed = 5.0f;
@@ -28,6 +36,10 @@ public class PlayerMove : MonoBehaviour
     public LayerMask whatIsGround = LayerMask.GetMask("Ground");
 
     // climbing
+    public float climbSpeed = 6.0f;
+    public float minClimbAngle = 75.0f;
+    public float maxClimbAngle = 105.0f;
+    public LayerMask whatIsClimbable = LayerMask.GetMask("Climbable");
 
     private Vector2 moveInput;
     private bool wantToJump;
@@ -64,10 +76,43 @@ public class PlayerMove : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        FindGround();
-        LateralMove();
-        VerticalMove();
+        FindClimbWall();
+        if (wantToJump && canClimb)
+        {
+            Climb();
+        }
+        else
+        {
+            FindGround();
+            LateralMove();
+            VerticalMove();
+        }
         Debug.Log("rb.velocity.magnitude: " + rb.velocity.magnitude);
+    }
+
+    private void FindClimbWall()
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, transform.forward, out hit, playerCollider.radius + 0.5f, whatIsClimbable))
+        {
+            // save normal of surface
+            wallNormal = hit.normal;
+            Debug.Log("wall being hit: " + hit.collider.name);
+
+            // get slope angle
+            wallAngle = Vector3.Angle(Vector3.up, hit.normal);
+
+            // check slope angle
+            if (wallAngle >= minClimbAngle && wallAngle <= maxClimbAngle)
+            {
+                canClimb = true;
+                return;
+            }
+        }
+
+        canClimb = false;
+
+        Debug.Log("Cannot Climb!!!!!!!!!!!!");
     }
 
     private void FindGround()
@@ -166,6 +211,18 @@ public class PlayerMove : MonoBehaviour
         }
 
         rb.velocity = jumpForces;
+    }
+
+    private void Climb()
+    {
+        Vector3 climbDirection = Vector3.ProjectOnPlane(Vector3.up, wallNormal).normalized;
+
+        rb.velocity = climbDirection * climbSpeed - wallNormal;
+    }
+
+    public void AddGravitySource(gravityPair gravitySource)
+    {
+        // worry about this later
     }
 }
 

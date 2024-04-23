@@ -39,6 +39,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2710134569520138408}
+  - component: {fileID: 799610107918738603}
   m_Layer: 7
   m_Name: PDWHandheld
   m_TagString: Untagged
@@ -63,6 +64,63 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &799610107918738603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1236234760586584368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485d37b449e574c48ae0f65ff2ae10b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GunAnimator: {fileID: 7421668617380488008}
+  ammoDisplayObject: {fileID: 5574045677759963304, guid: 5f3142563bd8a1b47959a1e5fc981ebd, type: 3}
+  reticleDisplayObject: {fileID: 6156658737600786806, guid: 05c74e95195539d4982a5316cbf25533, type: 3}
+  displayImage: {fileID: 21300000, guid: 1677b7db13c81bf45bd546990fae80f3, type: 3}
+  isAutomatic: 1
+  attackDelay: 0
+  attackRate: 0.075
+  burstCount: 1
+  burstRate: 0
+  isChargeable: 0
+  chargeTime: 0
+  recoilPattern:
+  - {x: -0.15, y: 0.05, z: 0.1}
+  recoilVariance:
+  - {x: 0.03, y: 0.08, z: 0}
+  maxRecoilReturn: 0.2
+  snappiness: 10
+  returnSpeed: 20
+  minSpread: 0.5
+  maxSpread: 1.5
+  spreadIncreasePerAttack: 0.5
+  spreadResetRate: 5
+  infiniteAmmo: 0
+  ammoPerAttack: 1
+  magSize: 42
+  startingMagSize: 42
+  maxReserves: 336
+  startingReserves: 210
+  lowThreshold: 0.4
+  mainAddTime: 1.2
+  mainRemainTime: 0.35
+  altAddTime: 2.2
+  altRemainTime: 0.7
+  meleeHitTime: 0
+  meleeHangTime: 0
+  meleeDamage: 0
+  EquipTime: 0.3
+  UnequipTime: 0.4
+  redReticleRange: 0
+  maxAssistRange: 0
+  assistInnerAngle: 0
+  assistOuterAngle: 0
+  assistMaxFriction: 0
+  assistMaxMagnetism: 0
+  autoMaxAngle: 0
 --- !u!1 &2479168479920578798
 GameObject:
   m_ObjectHideFlags: 0
@@ -219,60 +277,3 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &439152969775182638
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6913734027392479241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 485d37b449e574c48ae0f65ff2ae10b5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GunAnimator: {fileID: 7421668617380488008}
-  ammoDisplayObject: {fileID: 5574045677759963304, guid: 5f3142563bd8a1b47959a1e5fc981ebd, type: 3}
-  reticleDisplayObject: {fileID: 6156658737600786806, guid: 05c74e95195539d4982a5316cbf25533, type: 3}
-  displayImage: {fileID: 21300000, guid: 1677b7db13c81bf45bd546990fae80f3, type: 3}
-  isAutomatic: 1
-  attackDelay: 0
-  attackRate: 0.075
-  burstCount: 1
-  burstRate: 0
-  isChargeable: 0
-  chargeTime: 0
-  recoilPattern:
-  - {x: -0.1, y: 0, z: 0.1}
-  recoilVariance:
-  - {x: 0, y: 0.01, z: 0.3}
-  maxRecoilReturn: 0.2
-  snappiness: 6
-  returnSpeed: 2
-  minSpread: 0.5
-  maxSpread: 1.5
-  spreadIncreasePerAttack: 0.5
-  spreadResetRate: 5
-  infiniteAmmo: 0
-  ammoPerAttack: 1
-  magSize: 42
-  startingMagSize: 42
-  maxReserves: 336
-  startingReserves: 210
-  lowThreshold: 0.4
-  mainAddTime: 1.2
-  mainRemainTime: 0.35
-  altAddTime: 2.2
-  altRemainTime: 0.7
-  meleeHitTime: 0
-  meleeHangTime: 0
-  meleeDamage: 0
-  EquipTime: 0.3
-  UnequipTime: 0.4
-  redReticleRange: 0
-  maxAssistRange: 0
-  assistInnerAngle: 0
-  assistOuterAngle: 0
-  assistMaxFriction: 0
-  assistMaxMagnetism: 0
-  autoMaxAngle: 0
