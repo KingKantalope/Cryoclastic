@@ -90,7 +90,7 @@ MonoBehaviour:
   recoilPattern:
   - {x: -0.15, y: 0.05, z: 0.1}
   recoilVariance:
-  - {x: 0.03, y: 0.08, z: 0}
+  - {x: 0.03, y: 0.02, z: 0}
   maxRecoilReturn: 0.2
   snappiness: 10
   returnSpeed: 20
