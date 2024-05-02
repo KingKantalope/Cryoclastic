@@ -32,10 +32,12 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     [SerializeField] private float attackRate;
     [SerializeField] private int burstCount;
     [SerializeField] private float burstRate;
+    private float attackTime;
+    private int roundNum;
 
     [Header("Charging")]
     [SerializeField] private bool isChargeable;
-    [SerializeField] private float chargeTime;
+    [SerializeField] private float minCharge;
     private float currentCharge;
 
     [Header("Accuracy and Recoil")]
@@ -68,15 +70,21 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     [SerializeField] private float mainRemainTime;
     [SerializeField] private float altAddTime;
     [SerializeField] private float altRemainTime;
+    private float addTime;
+    private float remainTime;
+    private bool hasReloaded;
 
     [Header("Melee Stuff")]
     [SerializeField] private float meleeHitTime;
     [SerializeField] private float meleeHangTime;
     [SerializeField] private float meleeDamage;
+    private float meleeTime;
+    private bool hasMeleed;
 
     [Header("Equipping and Stowing")]
-    [SerializeField] private float EquipTime;
-    [SerializeField] private float UnequipTime;
+    [SerializeField] private float EquipDuration;
+    [SerializeField] private float UnequipDuration;
+    private float switchTime;
 
     [Header("Aim Assistance")]
     [SerializeField] private float redReticleRange;
@@ -131,6 +139,9 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
 
     void Update()
     {
+        // specific updates
+        AttackUpdate();
+
         handleInput();
         //RedReticle();
     }
@@ -173,7 +184,7 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     {
         if (isChargeable)
         {
-            if (currentCharge < chargeTime)
+            if (currentCharge < minCharge)
             {
                 currentCharge += Time.deltaTime;
             }
@@ -301,6 +312,22 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     /* AttackCoroutine accounts for the attack's attackDelay, attackRate,
      * burstCount, burstRate,
      */
+    protected virtual void StartAttack()
+    {
+        isAttacking = true;
+        roundNum = 0;
+    }
+
+    protected virtual void AttackUpdate()
+    {
+        // refactor coroutine functionality to work on update
+        // this shouldn't be so taxing like all these coroutines are now
+        if (attackDelay > 0f)
+        {
+
+        }
+    }
+
     protected IEnumerator AttackCoroutine()
     {
         isAttacking = true;
@@ -384,6 +411,59 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     #region GunAmmo
 
     /* */
+    protected virtual void ReloadUpdate()
+    {
+        // refactor coroutine functionality to work on update
+        // this shouldn't be so taxing like all these coroutines are now
+        if (addTime > 0f)
+        {
+            // wait to add ammo to mag
+            addTime -= Time.deltaTime;
+        }
+        else if (!hasReloaded)
+        {
+            // add ammo
+            Reload();
+            hasReloaded = true;
+        }
+        else if (remainTime > 0f)
+        {
+            // wait to allow attack
+            remainTime -= Time.deltaTime;
+        }
+        else
+        {
+            // end reload
+            isReloading = false;
+            // reset reloaded
+            hasReloaded = false;
+        }
+    }
+
+    protected virtual void StartReload()
+    {
+
+        isReloading = true;
+        wantToAttack = false;
+        wantToAltAttack = false;
+        hasReloaded = false;
+
+        addTime = mainAddTime;
+        remainTime = mainRemainTime;
+        bool isEmpty = false;
+
+        if (magCurrent <= 0)
+        {
+            addTime = altAddTime;
+            remainTime = altRemainTime;
+            isEmpty = true;
+        }
+
+        // play animation
+        m_CarrierSystem.GetAnimator().SetTrigger(isEmpty ? "ReloadNormal" : "ReloadEmpty");
+        GunAnimator.SetTrigger(isEmpty ? "ReloadNormal" : "ReloadEmpty");
+    }
+
     protected virtual IEnumerator ReloadCoroutine()
     {
         StopCoroutine(AttackCoroutine());
@@ -463,6 +543,10 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         m_CarrierSystem.GetAnimator().SetTrigger("Equip");
         GunAnimator.SetTrigger("Equip");
 
+        isEquipping = true;
+        switchTime = EquipDuration;
+
+        // remove below once EquipUpdate() is implemented
         // stop any current coroutines
         if (isStowing)
         {
@@ -489,6 +573,10 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         m_CarrierSystem.GetAnimator().SetTrigger("Unequip");
         GunAnimator.SetTrigger("Unequip");
 
+        isStowing = true;
+        switchTime = UnequipDuration;
+
+        // remove below once UnequipUpdate() is implemented
         // stop any current coroutines
         if (isEquipping)
         {
@@ -510,20 +598,54 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         StartCoroutine(UnequipCoroutine());
     }
 
+    private void EquipUpdate()
+    {
+        // refactor coroutine functionality to work on update
+        // this shouldn't be so taxing like all these coroutines are now
+
+        if (switchTime > 0f)
+        {
+            switchTime -= Time.deltaTime;
+        }
+        else
+        {
+            isEquipping = false;
+        }
+    }
+
     private IEnumerator EquipCoroutine()
     {
         isEquipping = true;
 
-        yield return new WaitForSeconds(EquipTime);
+        yield return new WaitForSeconds(EquipDuration);
 
         isEquipping = false;
+    }
+
+    private void UnequipUpdate()
+    {
+        // refactor coroutine functionality to work on update
+        // this shouldn't be so taxing like all these coroutines are now
+
+        if (switchTime > 0f)
+        {
+            switchTime -= Time.deltaTime;
+        }
+        else
+        {
+            Destroy(reticleDisplay.gameObject);
+
+            m_CarrierSystem.OnStow();
+
+            isStowing = false;
+        }
     }
 
     private IEnumerator UnequipCoroutine()
     {
         isStowing = true;
 
-        yield return new WaitForSeconds(UnequipTime);
+        yield return new WaitForSeconds(UnequipDuration);
 
         Destroy(reticleDisplay.gameObject);
 
@@ -535,6 +657,41 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     #endregion
 
     #region GunMelee
+
+    protected virtual void StartMelee()
+    {
+        wantToMelee = false;
+        isMeleeing = true;
+        hasMeleed = false;
+
+        //animations
+        m_CarrierSystem.GetAnimator().SetTrigger("Melee");
+        GunAnimator.SetTrigger("Melee");
+
+        meleeTime = meleeHitTime;
+    }
+
+    protected void MeleeUpdate()
+    {
+        if (meleeTime > 0f)
+        {
+            meleeTime -= Time.deltaTime;
+        }
+        else if (!hasMeleed)
+        {
+            Melee();
+            hasMeleed = true;
+            meleeTime = meleeHangTime;
+        }
+        else if (meleeTime > 0f)
+        {
+            meleeTime -= Time.deltaTime;
+        }
+        else
+        {
+            isMeleeing = false;
+        }
+    }
 
     protected IEnumerator MeleeCoroutine()
     {
