@@ -5,8 +5,16 @@ using UnityEngine.InputSystem;
 
 public class PlayerAim : MonoBehaviour
 {
-    [Header("Basic Look Variables")]
+    [Header("Look Offset Stuff")]
+    [SerializeField] private Transform armHolder;
     [SerializeField] private Transform camHolder;
+    [SerializeField] private Camera cam;
+    [Range(-0.0825f, 0.0825f)]
+    [SerializeField] private float aimOffset;
+    [Range(60f, 120f)]
+    [SerializeField] private float defaultFieldOfView;
+    [SerializeField] private PlayerHUD playerHUD;
+    [Header("Sensitivity and Aim Assist")]
     [SerializeField] private Vector2 mouseSensitivity;
     [SerializeField] private Vector2 gamepadSensitivity;
     private Vector2 mouseLook, gamepadLook;
@@ -16,7 +24,12 @@ public class PlayerAim : MonoBehaviour
     private float mouseFriction, mouseMagnetism;
     private bool stickAim;
 
-    // stuff
+    // zooming
+    private float targetZoom;
+    private float zoomSpeed;
+    private float currentZoomPercent;
+
+    // recoil backend stuff
     private Vector3 currentRotation;
     private Vector3 targetRotation;
     private Vector3 returnRotation;
@@ -41,11 +54,25 @@ public class PlayerAim : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         returnRotation = Vector3.zero;
+
+        currentZoomPercent = 0f;
+
+
+        SetCameraOffset();
     }
+
+    
 
     void Update()
     {
         HandleRecoil();
+        playerHUD.SetHUDRectTransformValues(Vector2.zero, 0f); // change these arguments!!!
+
+        // zooming
+        if (cam.fieldOfView != defaultFieldOfView * targetZoom)
+        {
+            UpdateCameraFOV();
+        }
     }
 
     private void LateUpdate()
@@ -53,6 +80,36 @@ public class PlayerAim : MonoBehaviour
         GamepadLookAcceleration();
         AimMagnetism();
         Look();
+    }
+
+    private void SetTargetZoom(float target, float speed)
+    {
+        targetZoom = target; // inverse factor of fieldOfView modifier
+        zoomSpeed = speed; // degrees per second
+    }
+
+    private void UpdateCameraFOV()
+    {
+        float changeInFOV = zoomSpeed * Time.deltaTime;
+        if (cam.fieldOfView > defaultFieldOfView / targetZoom)
+        {
+            changeInFOV *= -1f;
+        }
+        cam.fieldOfView = Mathf.Clamp(cam.fieldOfView + changeInFOV,defaultFieldOfView / targetZoom,defaultFieldOfView);
+
+        // last thing to do!
+        camHolder.localRotation = Quaternion.Euler(-90f + cam.fieldOfView * aimOffset, 0f, 180f);
+    }
+
+    private void SetCameraOffset()
+    {
+        // set camHolder localRotation
+        camHolder.localRotation = Quaternion.Euler(-90f + cam.fieldOfView * aimOffset, 0f,180f);
+        playerHUD.SetReticleOffset(aimOffset);
+    }
+
+    private void UpdateCameraOffset()
+    {
     }
 
     private void HandleRecoil()
@@ -94,7 +151,7 @@ public class PlayerAim : MonoBehaviour
         Vector3 gamepadTurn = Vector3.up * gamepadLook.x * gamepadSensitivity.x * gamepadAcceleration * (1f - gamepadFriction);
 
         // turn
-        camHolder.Rotate(mouseTurn + gamepadTurn + recoilRotation);
+        armHolder.Rotate(mouseTurn + gamepadTurn + recoilRotation);
 
         // up/down inputs
         float mouseRotation = -mouseLook.y * mouseSensitivity.y * (1f - mouseFriction);

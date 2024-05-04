@@ -591,16 +591,14 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
 
     /* Update this method to better 
      */
-    private void RedReticle()
+    private void SetReticleColor()
     {
-        float gamepadFriction = 0f;
-        float gamepadMagnetism = 0f;
-        float mouseFriction = 0f;
-        float mouseMagnetism = 0f;
         bool isEnemy = false;
         bool isFriendly = false;
 
-        m_PlayerAim.UpdateAimAssist(gamepadFriction, gamepadMagnetism, mouseFriction, mouseMagnetism);
+        // figure out if reticle should be red or not
+
+        // change reticle color based on that information
         reticleDisplay.SetReticleColor(isEnemy, isFriendly);
     }
 

@@ -7,6 +7,7 @@ public class PlayerHUD : MonoBehaviour
 {
     // Handheld Stuff
     private HandheldSlot currentSlot;
+    private HandheldSlot nextSlot;
     private GameObject weaponOneDisplay;
     private Image weaponOneImage;
     private bool hasWeaponOne;
@@ -20,12 +21,17 @@ public class PlayerHUD : MonoBehaviour
     private Image pickupImage;
     private bool hasPickup;
 
+    private float HUDOffset;
+
     [Header("General Details")]
+    [SerializeField] private RectTransform canvas;
     [SerializeField] private Color defaultColor;
     [SerializeField] private Color friendlyColor;
     [SerializeField] private Color enemyColor;
-    [SerializeField] private Transform reticleParent;
-    [SerializeField] private Transform ammoCounterParent;
+    [SerializeField] private RectTransform MainHUDParent;
+    [SerializeField] private RectTransform ReticleParent;
+    [SerializeField] private RectTransform OtherHUDParent;
+    [SerializeField] private RectTransform ammoCounterParent;
     [SerializeField] private Image critIndicator;
     [SerializeField] private Image activeHandheld;
     [SerializeField] private Image firstStowedHandheld;
@@ -36,18 +42,19 @@ public class PlayerHUD : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        // set default rotation
+        // set default HUD position
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        // set hud centered on actual aim
     }
 
-    public (Transform, Transform) OnAttachHandheldHUDFIXED()
+    public (RectTransform, RectTransform) OnAttachHandheldHUDFIXED()
     {
-        return (reticleParent, ammoCounterParent);
+        return (ReticleParent, ammoCounterParent);
     }
 
     public void OnAttachHandheldHUD(IHandheldObject handheldObject, GameObject handheldDisplay, GameObject reticleDisplay, Sprite displayImage)
@@ -55,10 +62,10 @@ public class PlayerHUD : MonoBehaviour
         HandheldDisplay displayToReturn = null;
         HandheldReticle reticleToReturn = null;
 
-        GameObject reticleObject = Instantiate(reticleDisplay, reticleParent, false);
+        GameObject reticleObject = Instantiate(reticleDisplay, ReticleParent, false);
         GameObject displayObject = Instantiate(handheldDisplay, ammoCounterParent, false);
 
-        switch (currentSlot)
+        switch (nextSlot)
         {
             case HandheldSlot.Pickup:
                 pickupDisplay = displayObject;
@@ -97,13 +104,26 @@ public class PlayerHUD : MonoBehaviour
         critIndicator.enabled = isCrit;
     }
 
+    public virtual void SetReticleOffset(float offset)
+    {
+        Debug.Log("reticle offset: " + offset + " canvas height: " + canvas.rect.height);
+        HUDOffset = canvas.rect.height * offset;
+        OtherHUDParent.anchoredPosition = new Vector2(0f, HUDOffset);
+        MainHUDParent.anchoredPosition = new Vector2(0f,-HUDOffset);
+    }
+
+    public virtual void SetHUDRectTransformValues(Vector2 posOffset, float rotOffset)
+    {
+
+    }
+
     public void SetActiveHandheld(HandheldSlot handheldSlot)
     {
-        currentSlot = handheldSlot;
+        nextSlot = handheldSlot;
 
         // set which slot is active
 
-        switch (currentSlot)
+        switch (nextSlot)
         {
             case HandheldSlot.WeaponOne:
                 weaponOneDisplay.SetActive(true);
