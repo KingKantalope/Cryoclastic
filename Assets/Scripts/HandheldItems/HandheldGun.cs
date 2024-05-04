@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR.Haptics;
 using UnityEngine.UI;
 
 public class HandheldGun : MonoBehaviour, IHandheldObject
@@ -72,6 +73,7 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     [SerializeField] private float altRemainTime;
     private float addTime;
     private float remainTime;
+    private float reloadTime;
     private bool hasReloaded;
 
     [Header("Melee Stuff")]
@@ -83,7 +85,7 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
 
     [Header("Equipping and Stowing")]
     [SerializeField] private float EquipDuration;
-    [SerializeField] private float UnequipDuration;
+    [SerializeField] private float StowDuration;
     private float switchTime;
 
     [Header("Aim Assistance")]
@@ -97,14 +99,9 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
 
     private bool wantToAttack;
     private bool wantToAltAttack;
-    private bool wantToCharge;
     private bool wantToReload;
     private bool wantToMelee;
-    private bool isAttacking;
-    private bool isReloading;
-    private bool isEquipping;
-    private bool isStowing;
-    private bool isMeleeing;
+    private GunAction currentAction = GunAction.Equipping;
 
     private int testMagCurrent = 8;
     private int testMagSize = 8;
@@ -117,15 +114,11 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     {
         magCurrent = startingMagSize;
         reservesCurrent = startingReserves;
-        isReloading = false;
+        currentAction = GunAction.Idle;
         wantToAttack = false;
         wantToAltAttack = false;
         wantToReload = false;
         wantToMelee = false;
-        isAttacking = false;
-        isEquipping = false;
-        isStowing = false;
-        isMeleeing = false;
 
         if (infiniteAmmo)
         {
@@ -141,6 +134,12 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     {
         // specific updates
         AttackUpdate();
+        MeleeUpdate();
+        ReloadUpdate();
+        EquipUpdate();
+        StowUpdate();
+        Debug.Log("currentAction: " + currentAction);
+
 
         handleInput();
         //RedReticle();
@@ -153,29 +152,21 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
 
     protected virtual void handleInput()
     {
-        // reloading and attacking
-        if (!isReloading && !isEquipping && !isStowing && !isMeleeing)
+        if (currentAction == GunAction.Idle || currentAction == GunAction.Attacking)
         {
-            if (!isAttacking && wantToAttack && magCurrent > 0)
+            if (wantToAttack && magCurrent > 0)
             {
                 handleTrigger();
             }
 
             if (wantToReload && magCurrent < magSize && reservesCurrent > 0)
             {
-                if (isAttacking) StopCoroutine(AttackCoroutine());
-
-                m_CarrierSystem.GetAnimator().SetBool("isReloading", true);
-                GunAnimator.SetBool("isReloading", true);
-
-                StartCoroutine(ReloadCoroutine());
+                StartReload();
             }
 
             if (wantToMelee)
             {
-                if (isAttacking) StopCoroutine(AttackCoroutine());
-
-                StartCoroutine(MeleeCoroutine());
+                StartMelee();
             }
         }
     }
@@ -190,14 +181,14 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
             }
             else
             {
-                StartCoroutine(AttackCoroutine());
+                StartAttack();
 
                 currentCharge = 0f;
             }
         }
         else
         {
-            StartCoroutine(AttackCoroutine());
+            StartAttack();
         }
     }
 
@@ -312,62 +303,43 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     /* AttackCoroutine accounts for the attack's attackDelay, attackRate,
      * burstCount, burstRate,
      */
+    // call this instead of starting the coroutine
     protected virtual void StartAttack()
     {
-        isAttacking = true;
-        roundNum = 0;
+        if (attackTime <= 0f)
+        {
+            attackTime = attackDelay;
+            currentAction = GunAction.Attacking;
+            roundNum = 0;
+        }
     }
 
+    // only call this when isAttacking is true
     protected virtual void AttackUpdate()
     {
         // refactor coroutine functionality to work on update
         // this shouldn't be so taxing like all these coroutines are now
-        if (attackDelay > 0f)
+        if (attackTime > 0f)
         {
-
+            attackTime -= Time.deltaTime;
         }
-    }
-
-    protected IEnumerator AttackCoroutine()
-    {
-        isAttacking = true;
-        int roundNum = 0;
-
-        // wait for delay if needed
-        if (attackDelay <= 0f)
-            yield return new WaitForSeconds(attackDelay);
-
-        // attack pattern
-        do
+        else if (magCurrent > 0 && currentAction == GunAction.Attacking && (wantToAttack || roundNum > 0))
         {
-            if (!isAutomatic) wantToAttack = false;
+            Attack();
+            roundNum++;
 
-            // burst fire
-            do
+            if (roundNum < burstCount)
             {
-                // perform attack
-                Attack();
-
-                // increase spread
-                spread += spreadIncreasePerAttack;
-
-                // call recoil
-                m_PlayerAim.AddRecoil(recoilPattern[roundNum % recoilPattern.Count],recoilVariance[roundNum % recoilVariance.Count], maxRecoilReturn);
-
-                // up round count
-                roundNum++;
-
-                // wait until next attack in burst
-                yield return new WaitForSeconds(burstRate);
-
-            } while (roundNum < burstCount && magCurrent > 0);
-
-            // wait until next burst
-            yield return new WaitForSeconds(attackRate);
-
-        } while (wantToAttack && !isChargeable && magCurrent > 0);
-
-        isAttacking = false;
+                attackTime = burstRate;
+            }
+            else
+            {
+                roundNum = 0;
+                attackTime = attackRate;
+                currentAction = GunAction.Idle;
+                if (!isAutomatic) wantToAttack = false;
+            }
+        }
     }
 
     /* Create a basic projectile spawning system,
@@ -392,6 +364,12 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         {
             ammoDisplay.SetResourceAmount(magCurrent, magSize, lowThreshold, reservesCurrent);
         }
+
+        // increase spread
+        spread += spreadIncreasePerAttack;
+
+        // call recoil
+        m_PlayerAim.AddRecoil(recoilPattern[roundNum % recoilPattern.Count], recoilVariance[roundNum % recoilVariance.Count], maxRecoilReturn);
     }
 
     #endregion
@@ -415,88 +393,62 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     {
         // refactor coroutine functionality to work on update
         // this shouldn't be so taxing like all these coroutines are now
-        if (addTime > 0f)
+        if (reloadTime > 0f)
         {
             // wait to add ammo to mag
-            addTime -= Time.deltaTime;
+            reloadTime -= Time.deltaTime;
+            Debug.Log("Reloading: " + reloadTime);
         }
-        else if (!hasReloaded)
+        else if (currentAction == GunAction.Reloading)
         {
-            // add ammo
-            Reload();
-            hasReloaded = true;
-        }
-        else if (remainTime > 0f)
-        {
-            // wait to allow attack
-            remainTime -= Time.deltaTime;
-        }
-        else
-        {
-            // end reload
-            isReloading = false;
-            // reset reloaded
-            hasReloaded = false;
+            if (!hasReloaded)
+            {
+                // add ammo
+                Reload();
+                Debug.Log("reloaded");
+                hasReloaded = true;
+                reloadTime = mainRemainTime;
+            }
+            else
+            {
+                // end reload
+                currentAction = GunAction.Idle;
+                Debug.Log("Going back to Idle");
+                // reset reloaded
+                hasReloaded = false;
+
+                m_CarrierSystem.GetAnimator().SetBool("isReloading", false);
+                GunAnimator.SetBool("isReloading", false);
+            }
         }
     }
 
     protected virtual void StartReload()
     {
-
-        isReloading = true;
         wantToAttack = false;
         wantToAltAttack = false;
         hasReloaded = false;
 
-        addTime = mainAddTime;
-        remainTime = mainRemainTime;
         bool isEmpty = false;
 
         if (magCurrent <= 0)
         {
-            addTime = altAddTime;
-            remainTime = altRemainTime;
+            reloadTime = altAddTime;
             isEmpty = true;
         }
-
-        // play animation
-        m_CarrierSystem.GetAnimator().SetTrigger(isEmpty ? "ReloadNormal" : "ReloadEmpty");
-        GunAnimator.SetTrigger(isEmpty ? "ReloadNormal" : "ReloadEmpty");
-    }
-
-    protected virtual IEnumerator ReloadCoroutine()
-    {
-        StopCoroutine(AttackCoroutine());
-        isReloading = true;
-        wantToAttack = false;
-        wantToAltAttack = false;
-
-        float addTime = mainAddTime;
-        float remainTime = mainRemainTime;
-        bool isEmpty = false;
-
-        if (magCurrent <= 0)
+        else
         {
-            addTime = altAddTime;
-            remainTime = altRemainTime;
-            isEmpty = true;
+            reloadTime = mainAddTime;
         }
 
+        currentAction = GunAction.Reloading;
+        Debug.Log("Reloading?: " + currentAction);
+
         // play animation
+        m_CarrierSystem.GetAnimator().SetBool("isReloading", true);
+        GunAnimator.SetBool("isReloading", true);
         m_CarrierSystem.GetAnimator().SetTrigger(isEmpty ? "ReloadNormal" : "ReloadEmpty");
         GunAnimator.SetTrigger(isEmpty ? "ReloadNormal" : "ReloadEmpty");
-
-        yield return new WaitForSeconds(addTime);
-
-        // do stuff
-        Reload();
-
-        yield return new WaitForSeconds(remainTime);
-
-        m_CarrierSystem.GetAnimator().SetBool("isReloading", false);
-        GunAnimator.SetBool("isReloading", false);
-
-        isReloading = false;
     }
 
     protected virtual void Reload()
@@ -543,29 +495,8 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         m_CarrierSystem.GetAnimator().SetTrigger("Equip");
         GunAnimator.SetTrigger("Equip");
 
-        isEquipping = true;
+        currentAction = GunAction.Equipping;
         switchTime = EquipDuration;
-
-        // remove below once EquipUpdate() is implemented
-        // stop any current coroutines
-        if (isStowing)
-        {
-            StopCoroutine(UnequipCoroutine());
-        }
-        else if (isAttacking)
-        {
-            StopCoroutine(AttackCoroutine());
-        }
-        else if (isReloading)
-        {
-            StopCoroutine(ReloadCoroutine());
-        }
-        else if (isMeleeing)
-        {
-            StopCoroutine(MeleeCoroutine());
-        }
-
-        StartCoroutine(EquipCoroutine());
     }
 
     public void OnUnequip()
@@ -573,29 +504,8 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         m_CarrierSystem.GetAnimator().SetTrigger("Unequip");
         GunAnimator.SetTrigger("Unequip");
 
-        isStowing = true;
-        switchTime = UnequipDuration;
-
-        // remove below once UnequipUpdate() is implemented
-        // stop any current coroutines
-        if (isEquipping)
-        {
-            StopCoroutine(EquipCoroutine());
-        }
-        else if (isAttacking)
-        {
-            StopCoroutine(AttackCoroutine());
-        }
-        else if (isReloading)
-        {
-            StopCoroutine(ReloadCoroutine());
-        }
-        else if (isMeleeing)
-        {
-            StopCoroutine(MeleeCoroutine());
-        }
-
-        StartCoroutine(UnequipCoroutine());
+        currentAction = GunAction.Stowing;
+        switchTime = StowDuration;
     }
 
     private void EquipUpdate()
@@ -607,22 +517,13 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         {
             switchTime -= Time.deltaTime;
         }
-        else
+        else if (currentAction == GunAction.Equipping)
         {
-            isEquipping = false;
+            currentAction = GunAction.Idle;
         }
     }
 
-    private IEnumerator EquipCoroutine()
-    {
-        isEquipping = true;
-
-        yield return new WaitForSeconds(EquipDuration);
-
-        isEquipping = false;
-    }
-
-    private void UnequipUpdate()
+    private void StowUpdate()
     {
         // refactor coroutine functionality to work on update
         // this shouldn't be so taxing like all these coroutines are now
@@ -631,27 +532,12 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         {
             switchTime -= Time.deltaTime;
         }
-        else
+        else if (currentAction == GunAction.Stowing)
         {
             Destroy(reticleDisplay.gameObject);
 
             m_CarrierSystem.OnStow();
-
-            isStowing = false;
         }
-    }
-
-    private IEnumerator UnequipCoroutine()
-    {
-        isStowing = true;
-
-        yield return new WaitForSeconds(UnequipDuration);
-
-        Destroy(reticleDisplay.gameObject);
-
-        m_CarrierSystem.OnStow();
-
-        isStowing = false;
     }
 
     #endregion
@@ -661,7 +547,7 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     protected virtual void StartMelee()
     {
         wantToMelee = false;
-        isMeleeing = true;
+        currentAction = GunAction.Meleeing;
         hasMeleed = false;
 
         //animations
@@ -687,34 +573,16 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
         {
             meleeTime -= Time.deltaTime;
         }
-        else
+        else if (currentAction == GunAction.Meleeing)
         {
-            isMeleeing = false;
+            currentAction = GunAction.Idle;
         }
-    }
-
-    protected IEnumerator MeleeCoroutine()
-    {
-        wantToMelee = false;
-
-        isMeleeing = true;
-
-        //animations
-        m_CarrierSystem.GetAnimator().SetTrigger("Melee");
-        GunAnimator.SetTrigger("Melee");
-
-        yield return new WaitForSeconds(meleeHitTime);
-
-        Melee();
-
-        yield return new WaitForSeconds(meleeHangTime);
-
-        isMeleeing = false;
     }
 
     protected void Melee()
     {
         // call for melee damage/physics
+        // use CapsuleCast to find hitboxes with the correct tags
     }
 
     #endregion
@@ -737,4 +605,14 @@ public class HandheldGun : MonoBehaviour, IHandheldObject
     }
 
     #endregion
+}
+
+public enum GunAction
+{
+    Idle,
+    Attacking,
+    Reloading,
+    Meleeing,
+    Equipping,
+    Stowing
 }

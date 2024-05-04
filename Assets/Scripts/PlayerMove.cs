@@ -87,7 +87,7 @@ public class PlayerMove : MonoBehaviour
             LateralMove();
             VerticalMove();
         }
-        Debug.Log("rb.velocity.magnitude: " + rb.velocity.magnitude);
+        // Debug.Log("rb.velocity.magnitude: " + rb.velocity.magnitude);
     }
 
     private void FindClimbWall()
@@ -112,7 +112,7 @@ public class PlayerMove : MonoBehaviour
 
         canClimb = false;
 
-        Debug.Log("Cannot Climb!!!!!!!!!!!!");
+        // Debug.Log("Cannot Climb!!!!!!!!!!!!");
     }
 
     private void FindGround()
@@ -137,7 +137,7 @@ public class PlayerMove : MonoBehaviour
         
         grounded = false;
 
-        Debug.Log("Not Grounded!!!!!!!!!!!!");
+        // Debug.Log("Not Grounded!!!!!!!!!!!!");
     }
 
     private void LateralMove()
