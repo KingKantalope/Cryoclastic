@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlayerHitpoints : MonoBehaviour, IDamageable
 {
+    [SerializeField] private Actor thisActor;
+
     [Header("Shields Hitpoints")]
     [SerializeField] private float startingShields;
     [SerializeField] private float maxShields;
@@ -220,7 +222,7 @@ public class PlayerHitpoints : MonoBehaviour, IDamageable
      * Logic is handled here, all other relevant scripts reference this in order to grab modifiers.
      */
 
-    public HitpointType MainDamage(float baseDamage, float shieldMulti, float armorMulti, float healthMulti, float critMulti, int penetrationLevel, bool isCrit)
+    public HitpointType MainDamage(Damage damage)
     {
         // what needs to happen: reset hemorrhage ticks, deal damage to shields->armor->health
         // get damage values
@@ -231,17 +233,17 @@ public class PlayerHitpoints : MonoBehaviour, IDamageable
         // shields first
         if (currentShields > 0f)
         {
-            individualDMG = baseDamage * shieldMulti;
+            individualDMG = damage.baseDamage * damage.shieldMulti;
 
             if (individualDMG >= currentShields)
             {
-                baseDamage -= currentShields;
+                damage.baseDamage -= currentShields;
                 currentShields = 0f;
                 rechargeTime = rechargeDelay;
             }
             else
             {
-                currentShields -= (individualDMG / shieldMulti);
+                currentShields -= (individualDMG / damage.shieldMulti);
                 rechargeTime = rechargeDelay;
                 return HitpointType.shields;
             }
@@ -250,49 +252,49 @@ public class PlayerHitpoints : MonoBehaviour, IDamageable
         // armor second
         if (currentArmor > 0f)
         {
-            netPenetration = penetrationLevel - protectionLevel + armorWeakening;
+            netPenetration = damage.penetrationLevel - protectionLevel + armorWeakening;
             
             if (netPenetration <= 0)
             {
-                armorDMG = baseDamage * Mathf.Clamp((float)(Mathf.Abs(netPenetration) / 4),0.25f, 1f);                
+                armorDMG = damage.baseDamage * Mathf.Clamp((float)(Mathf.Abs(netPenetration) / 4),0.25f, 1f);                
             }
             else
             {
-                armorDMG = baseDamage;
-                bleedthrough += baseDamage * Mathf.Clamp((float)(4 - Mathf.Abs(netPenetration) / 4),0f, 1f);
+                armorDMG = damage.baseDamage;
+                bleedthrough += damage.baseDamage * Mathf.Clamp((float)(4 - Mathf.Abs(netPenetration) / 4),0f, 1f);
             }
 
-            individualDMG = armorDMG * armorMulti;
+            individualDMG = armorDMG * damage.armorMulti;
 
             if (individualDMG >= currentArmor)
             {
-                baseDamage = Mathf.Clamp(baseDamage - currentArmor + bleedthrough, 0f, baseDamage);
+                damage.baseDamage = Mathf.Clamp(damage.baseDamage - currentArmor + bleedthrough, 0f, damage.baseDamage);
                 currentArmor = 0f;
             }
             else if (bleedthrough <= 0f)
             {
-                currentArmor -= (individualDMG / armorMulti);
+                currentArmor -= (individualDMG / damage.armorMulti);
                 return HitpointType.armor;
             }
         }
 
         // health last
-        baseDamage *= healthMulti;
+        damage.baseDamage *= damage.healthMulti;
 
         // don't forget crits!
-        if (isCrit)
+        if (damage.isCrit)
         {
             if (critsInstakill)
             {
-                baseDamage *= Mathf.Pow(10f,30f);
+                damage.baseDamage *= Mathf.Pow(10f,30f);
             }
             else
             {
-                baseDamage *= critMulti;
+                damage.baseDamage *= damage.critMulti;
             }
         }
 
-        if (baseDamage >= currentHealth)
+        if (damage.baseDamage >= currentHealth)
         {
             currentHealth = 0f;
 
@@ -301,7 +303,7 @@ public class PlayerHitpoints : MonoBehaviour, IDamageable
         }
         else
         {
-            currentHealth -= baseDamage;
+            currentHealth -= damage.baseDamage;
             return HitpointType.health;
         }
     }
@@ -374,6 +376,7 @@ public class PlayerHitpoints : MonoBehaviour, IDamageable
         isShocked = newShocked;
     }
     
+    public string GetActorID() { return thisActor.GetID(); }
     public float GetPoise() { return currentPoise; }
     public float GetRadiation() { return currentRadiation; }
     public float GetFrost() { return currentFrost; }

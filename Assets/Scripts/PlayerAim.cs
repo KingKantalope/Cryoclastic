@@ -25,7 +25,7 @@ public class PlayerAim : MonoBehaviour
     private bool stickAim;
 
     // zooming
-    private float targetZoom;
+    private float targetZoom = 1;
     private float zoomSpeed;
     private float currentZoomPercent;
 
