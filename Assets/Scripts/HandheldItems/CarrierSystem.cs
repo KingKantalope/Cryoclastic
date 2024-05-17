@@ -55,6 +55,7 @@ public class CarrierSystem : MonoBehaviour, Controls.IPlayerActions
         return RigAnimator;
     }
 
+    // needs to change, should use persistent Handhelds to maintain data and timers
     public void SwitchHandheld(HandheldScriptableObject handheld)
     {
         if (m_CurrentHandheldScriptableObject == handheld)

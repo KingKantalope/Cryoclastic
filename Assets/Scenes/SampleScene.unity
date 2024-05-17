@@ -253,7 +253,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 35, y: 35}
+  m_SizeDelta: {x: 15, y: 15}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &72989958
 MonoBehaviour:
@@ -1908,7 +1908,7 @@ MonoBehaviour:
   camHolder: {fileID: 1492643586}
   cam: {fileID: 963194227}
   aimOffset: 0.0825
-  defaultFieldOfView: 60
+  defaultFieldOfView: 80
   playerHUD: {fileID: 885270761}
   mouseSensitivity: {x: 0.24, y: 0.18}
   gamepadSensitivity: {x: 0.48, y: 0.36}
@@ -2469,8 +2469,8 @@ MonoBehaviour:
   PhosphorusMaxCount: 3
   BismuthMaxCount: 3
   EquipableHandhelds:
-  - {fileID: 11400000, guid: f837550584808b94aae7d376568ba2f2, type: 2}
   - {fileID: 11400000, guid: 3b386e4b9850fbe44903e99c8916efd2, type: 2}
+  - {fileID: 11400000, guid: f837550584808b94aae7d376568ba2f2, type: 2}
 --- !u!114 &885270761
 MonoBehaviour:
   m_ObjectHideFlags: 0

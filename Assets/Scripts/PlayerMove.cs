@@ -133,9 +133,11 @@ public class PlayerMove : MonoBehaviour
                 grounded = true;
                 return;
             }
-
-            playerCollider.
         }
+
+        // update this to get all contacts with rigidbody of 45° angle or less steepness
+        // average them all out to get proper move vector without relying on being perfectly center
+        // should require player to be literally touching ground to be grounded
         
         grounded = false;
 

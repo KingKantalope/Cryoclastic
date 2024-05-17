@@ -88,6 +88,12 @@ public class PlayerAim : MonoBehaviour
         zoomSpeed = speed; // degrees per second
     }
 
+    private void ResetTargetZoom(float speed)
+    {
+        targetZoom = 1f;
+        zoomSpeed = speed;
+    }
+
     private void UpdateCameraFOV()
     {
         float changeInFOV = zoomSpeed * Time.deltaTime;
